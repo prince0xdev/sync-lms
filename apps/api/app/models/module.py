@@ -23,5 +23,6 @@ class Module(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     course: Mapped["Course"] = relationship(back_populates="modules")
+    video_tracks: Mapped[list["VideoTrack"]] = relationship(back_populates="module", cascade="all, delete-orphan")
     audio_tracks: Mapped[list["AudioTrack"]] = relationship(back_populates="module", cascade="all, delete-orphan")
     progress_records: Mapped[list["ModuleProgress"]] = relationship(back_populates="module", cascade="all, delete-orphan")

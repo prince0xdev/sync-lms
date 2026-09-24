@@ -25,13 +25,6 @@ export default function CoursePage() {
     if (courseQuery.isError) return <p role="alert">{courseQuery.error instanceof ApiError ? courseQuery.error.message : t('network_error')}</p>;
     const course = courseQuery.data;
 
-    function startEnrollment() {
-        if (!user) {
-            navigate(`/${locale}/login`);
-            return;
-        }
-        enrollment.mutate();
-    }
 
     return (
         <main className="course-detail">
@@ -40,7 +33,7 @@ export default function CoursePage() {
             <h1>{course.title}</h1>
             <p>{course.description}</p>
             <p>{t('instructor')}: {course.instructor} · {course.module_count} {t('modules_count')}</p>
-            {course.audio_languages.length > 0 && <p>{t('audio_languages')}: {course.audio_languages.map((item) => item.toUpperCase()).join(' · ')}</p>}
+            {course.video_languages.length > 0 && <p>{locale === 'fr' ? 'Vidéos disponibles' : 'Video languages'}: {course.video_languages.map((item) => item.toUpperCase()).join(' · ')}</p>}{course.audio_languages.length > 0 && <p>{t('audio_languages')}: {course.audio_languages.map((item) => item.toUpperCase()).join(' · ')}</p>}
             <section>
                 <h2>{t('course_content')}</h2>
                 <ol className="module-list">
@@ -50,7 +43,7 @@ export default function CoursePage() {
                     </li>)}
                 </ol>
             </section>
-            {!course.enrolled && <button type="button" onClick={startEnrollment} disabled={enrollment.isPending}>
+            {!course.enrolled && <button type="button" onClick={() => { if (!user) navigate(`/${locale}/login`); else enrollment.mutate(); }} disabled={enrollment.isPending}>
                 {user ? t('enroll_course') : t('login_to_enroll')}
             </button>}
             {enrollment.isError && <p role="alert">{enrollment.error.message}</p>}
@@ -59,7 +52,7 @@ export default function CoursePage() {
                 <h2>{t('start_learning')}</h2>
                 {course.modules.map((module) => <p key={module.id}>
                     <Link to={`/${locale}/courses/${course.slug}/modules/${module.id}`}>{module.position}. {module.title}</Link>
-                    {module.audio_languages.length > 0 && <span className="course-meta"> · {t('audio_languages')}: {module.audio_languages.map((item) => item.toUpperCase()).join(' / ')}</span>}
+                    {module.video_languages.length > 0 && <span className="course-meta"> · {locale === 'fr' ? 'Vidéos' : 'Videos'}: {module.video_languages.map((item) => item.toUpperCase()).join(' / ')}</span>}{module.audio_languages.length > 0 && <span className="course-meta"> · {t('audio_languages')}: {module.audio_languages.map((item) => item.toUpperCase()).join(' / ')}</span>}
                 </p>)}
             </section>}
         </main>

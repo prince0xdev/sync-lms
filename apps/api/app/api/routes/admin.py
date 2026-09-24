@@ -18,6 +18,7 @@ from app.models.enrollment import Enrollment
 from app.models.module import Module
 from app.models.module_progress import ModuleProgress
 from app.models.user import User
+from app.models.video_track import VideoTrack
 from app.schemas.admin import (
     AdminCourseInput,
     AdminCourseResponse,
@@ -83,7 +84,8 @@ def _module_response(module: Module) -> AdminModuleResponse:
         description=module.description,
         position=module.position,
         duration_seconds=module.duration_seconds,
-        has_video=module.video_key is not None,
+        has_video=module.video_key is not None or bool(module.video_tracks),
+        video_languages=sorted(track.language for track in module.video_tracks),
         audio_languages=sorted(track.language for track in module.audio_tracks),
     )
 
@@ -100,6 +102,7 @@ def _course_response(course: Course, enrollment_count: int = 0) -> AdminCourseRe
         created_at=course.created_at,
         module_count=len(course.modules),
         enrollment_count=enrollment_count,
+        video_languages=sorted({language for module in course.modules for language in (track.language for track in module.video_tracks)} | ({course.language} if any(module.video_key for module in course.modules) else set())),
     )
 
 
@@ -148,7 +151,7 @@ def list_admin_courses(db: Session = Depends(get_db)) -> list[AdminCourseRespons
     rows = db.execute(
         select(Course, func.count(Enrollment.id))
         .outerjoin(Enrollment, Enrollment.course_id == Course.id)
-        .options(selectinload(Course.modules))
+        .options(selectinload(Course.modules).selectinload(Module.video_tracks))
         .group_by(Course.id)
         .order_by(Course.created_at.desc())
     ).all()
@@ -170,7 +173,7 @@ def create_course(payload: AdminCourseInput, db: Session = Depends(get_db)) -> A
 
 @router.put("/courses/{course_id}", response_model=AdminCourseResponse)
 def update_course(course_id: UUID, payload: AdminCourseInput, db: Session = Depends(get_db)) -> AdminCourseResponse:
-    course = db.scalar(select(Course).where(Course.id == course_id).options(selectinload(Course.modules)))
+    course = db.scalar(select(Course).where(Course.id == course_id).options(selectinload(Course.modules).selectinload(Module.video_tracks)))
     if course is None:
         raise HTTPException(status_code=404, detail="Formation introuvable.")
     for key, value in payload.model_dump().items():
@@ -192,7 +195,7 @@ def list_course_modules(course_id: UUID, db: Session = Depends(get_db)) -> list[
     modules = db.scalars(
         select(Module)
         .where(Module.course_id == course_id)
-        .options(selectinload(Module.audio_tracks))
+        .options(selectinload(Module.audio_tracks), selectinload(Module.video_tracks))
         .order_by(Module.position)
     )
     return [_module_response(module) for module in modules]
@@ -218,7 +221,7 @@ def update_module(course_id: UUID, module_id: UUID, payload: AdminModuleInput, d
     module = db.scalar(
         select(Module)
         .where(Module.id == module_id, Module.course_id == course_id)
-        .options(selectinload(Module.audio_tracks))
+        .options(selectinload(Module.audio_tracks), selectinload(Module.video_tracks))
     )
     if module is None:
         raise HTTPException(status_code=404, detail="Module introuvable.")
@@ -234,20 +237,42 @@ def update_module(course_id: UUID, module_id: UUID, payload: AdminModuleInput, d
 
 
 @router.post("/modules/{module_id}/video", response_model=AdminMediaResponse)
-def upload_module_video(module_id: UUID, file: UploadFile = File(...), db: Session = Depends(get_db)) -> AdminMediaResponse:
-    module = db.scalar(select(Module).where(Module.id == module_id))
+def upload_module_video(
+    module_id: UUID,
+    language: str = Form(..., min_length=2, max_length=10),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+) -> AdminMediaResponse:
+    if not fullmatch(r"[a-zA-Z]{2,3}(?:-[a-zA-Z0-9]{2,8})?", language):
+        raise HTTPException(status_code=422, detail="Code de langue invalide.")
+    module = db.scalar(
+        select(Module)
+        .where(Module.id == module_id)
+        .options(selectinload(Module.video_tracks))
+    )
     if module is None:
         raise HTTPException(status_code=404, detail="Module introuvable.")
+    normalized_language = language.lower()
     object_key, media_type = _store_upload(
         file,
-        f"courses/{module.course_id}/modules/{module.id}/video",
+        f"courses/{module.course_id}/modules/{module.id}/video/{normalized_language}",
         "video",
         MAX_VIDEO_BYTES,
     )
-    module.video_key = object_key
+    track = next((item for item in module.video_tracks if item.language == normalized_language), None)
+    if track is None:
+        track = VideoTrack(module_id=module.id, language=normalized_language, object_key=object_key, mime_type=media_type)
+        db.add(track)
+    else:
+        track.object_key = object_key
+        track.mime_type = media_type
     db.commit()
-    return AdminMediaResponse(object_key=object_key, url=get_media_url(object_key), media_type=media_type)
-
+    return AdminMediaResponse(
+        object_key=object_key,
+        url=get_media_url(object_key),
+        media_type=media_type,
+        language=normalized_language,
+    )
 
 @router.post("/modules/{module_id}/audio", response_model=AdminMediaResponse)
 def upload_module_audio(

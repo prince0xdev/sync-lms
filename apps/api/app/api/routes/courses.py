@@ -15,7 +15,8 @@ from app.models.enrollment import Enrollment
 from app.models.module import Module
 from app.models.module_progress import ModuleProgress
 from app.models.user import User
-from app.schemas.courses import AudioTrackResponse, CourseDetail, CourseListResponse, CourseSummary, DashboardModule, DashboardResponse, EnrolledCourseResponse, EnrollmentResponse, ModuleContentResponse, ModuleProgressResponse, ModuleProgressUpdate, ModuleSummary
+from app.models.video_track import VideoTrack
+from app.schemas.courses import AudioTrackResponse, VideoTrackResponse, CourseDetail, CourseListResponse, CourseSummary, DashboardModule, DashboardResponse, EnrolledCourseResponse, EnrollmentResponse, ModuleContentResponse, ModuleProgressResponse, ModuleProgressUpdate, ModuleSummary
 
 router = APIRouter(tags=["formations"])
 
@@ -32,6 +33,7 @@ def course_summary(course: Course) -> CourseSummary:
         level=course.level,
         module_count=len(course.modules),
         audio_languages=languages,
+        video_languages=sorted({track.language for module in course.modules for track in module.video_tracks} | ({course.language} if any(module.video_key for module in course.modules) else set())),
     )
 
 
@@ -42,12 +44,18 @@ def list_courses(
     level: str | None = Query(default=None, max_length=30),
     db: Session = Depends(get_db),
 ) -> CourseListResponse:
-    statement = select(Course).options(selectinload(Course.modules).selectinload(Module.audio_tracks))
+    statement = select(Course).options(selectinload(Course.modules).selectinload(Module.audio_tracks), selectinload(Course.modules).selectinload(Module.video_tracks))
     if search and search.strip():
         term = f"%{search.strip()}%"
         statement = statement.where(or_(Course.title.ilike(term), Course.instructor.ilike(term)))
     if language:
-        statement = statement.where(func.lower(Course.language) == language.lower())
+        language_match = language.lower()
+        statement = statement.where(
+            or_(
+                func.lower(Course.language) == language_match,
+                Course.modules.any(Module.video_tracks.any(func.lower(VideoTrack.language) == language_match)),
+            )
+        )
     if level:
         statement = statement.where(func.lower(Course.level) == level.lower())
     statement = statement.order_by(Course.title)
@@ -60,7 +68,7 @@ def get_course(slug: str, request: Request, user: User | None = Depends(get_opti
     course = db.scalar(
         select(Course)
         .where(Course.slug == slug)
-        .options(selectinload(Course.modules).selectinload(Module.audio_tracks))
+        .options(selectinload(Course.modules).selectinload(Module.audio_tracks), selectinload(Course.modules).selectinload(Module.video_tracks))
     )
     if course is None:
         locale = get_locale(request)
@@ -73,8 +81,9 @@ def get_course(slug: str, request: Request, user: User | None = Depends(get_opti
             description=module.description,
             position=module.position,
             duration_seconds=module.duration_seconds,
-            has_video=module.video_key is not None,
+            has_video=module.video_key is not None or bool(module.video_tracks),
             audio_languages=sorted({track.language for track in module.audio_tracks}),
+            video_languages=sorted({track.language for track in module.video_tracks}) or ([course.language] if module.video_key else []),
         )
         for module in course.modules
     ]
@@ -158,7 +167,7 @@ def get_module_content(
     db: Session = Depends(get_db),
 ) -> ModuleContentResponse:
     locale = get_locale(request)
-    module = db.scalar(select(Module).where(Module.id == module_id).options(selectinload(Module.course), selectinload(Module.audio_tracks)))
+    module = db.scalar(select(Module).where(Module.id == module_id).options(selectinload(Module.course), selectinload(Module.audio_tracks), selectinload(Module.video_tracks)))
     if module is None:
         raise HTTPException(status_code=404, detail="Module introuvable." if locale == "fr" else "Module not found.")
     enrollment = db.scalar(select(Enrollment.id).where(Enrollment.user_id == user.id, Enrollment.course_id == module.course_id))
@@ -170,6 +179,10 @@ def get_module_content(
         AudioTrackResponse(language=track.language, mime_type=track.mime_type, url=get_media_url(track.object_key))
         for track in sorted(module.audio_tracks, key=lambda item: item.language)
     ]
+    video_tracks = [
+        VideoTrackResponse(language=track.language, mime_type=track.mime_type, url=get_media_url(track.object_key))
+        for track in sorted(module.video_tracks, key=lambda item: item.language)
+    ]
     return ModuleContentResponse(
         id=module.id,
         course_slug=module.course.slug,
@@ -179,6 +192,7 @@ def get_module_content(
         duration_seconds=module.duration_seconds,
         video_url=video_url,
         audio_tracks=tracks,
+        video_tracks=video_tracks,
         progress_seconds=progress.progress_seconds if progress else 0,
         completed=progress.completed if progress else False,
     )

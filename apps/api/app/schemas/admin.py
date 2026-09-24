@@ -17,6 +17,7 @@ class AdminCourseResponse(AdminCourseInput):
     id: UUID
     module_count: int
     enrollment_count: int = 0
+    video_languages: list[str] = Field(default_factory=list)
     created_at: datetime
 
 
@@ -47,6 +48,7 @@ class AdminModuleInput(BaseModel):
 class AdminModuleResponse(AdminModuleInput):
     id: UUID
     has_video: bool = False
+    video_languages: list[str] = Field(default_factory=list)
     audio_languages: list[str] = Field(default_factory=list)
 
 
