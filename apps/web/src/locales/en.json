@@ -52,5 +52,16 @@
   "module_number": "Module {number}",
   "audio_language": "Audio language",
   "video_unavailable": "The video for this module will be available soon.",
-  "audio_tracks_available": "Available tracks"
+  "audio_tracks_available": "Available tracks",
+  "dashboard_title": "My learning",
+  "loading_dashboard": "Loading your progress…",
+  "dashboard_empty": "You are not enrolled in any courses yet. Explore the catalogue to get started.",
+  "completed_modules": "modules completed",
+  "complete": "complete",
+  "continue_learning": "Continue learning",
+  "course_completed": "Course completed",
+  "mark_complete": "Mark as complete",
+  "module_completed": "Module completed",
+  "next_module": "Next module",
+  "progress_saving": "Progress saved"
 }

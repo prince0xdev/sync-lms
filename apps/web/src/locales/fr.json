@@ -52,5 +52,16 @@
   "module_number": "Module {number}",
   "audio_language": "Langue audio",
   "video_unavailable": "La vidéo de ce module sera bientôt disponible.",
-  "audio_tracks_available": "Pistes disponibles"
+  "audio_tracks_available": "Pistes disponibles",
+  "dashboard_title": "Mes formations",
+  "loading_dashboard": "Chargement de votre progression…",
+  "dashboard_empty": "Vous ne suivez encore aucune formation. Parcourez le catalogue pour commencer.",
+  "completed_modules": "modules terminés",
+  "complete": "terminé",
+  "continue_learning": "Continuer",
+  "course_completed": "Formation terminée",
+  "mark_complete": "Marquer comme terminé",
+  "module_completed": "Module terminé",
+  "next_module": "Module suivant",
+  "progress_saving": "Progression enregistrée"
 }

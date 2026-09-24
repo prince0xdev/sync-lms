@@ -30,6 +30,7 @@ export default function App() {
                 <Route path="login" element={<AuthForm mode="login" />} />
                 <Route path="register" element={<AuthForm mode="register" />} />
                 <Route path="profile" element={<ProfilePage />} />
+                <Route path="dashboard" element={<ProfilePage />} />
                 <Route path="courses/:slug" element={<CoursePage />} />
                 <Route path="courses/:slug/modules/:moduleId" element={<ModulePage />} />
                 <Route path="admin/*" element={<AdminPage />} />

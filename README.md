@@ -38,4 +38,4 @@ Définissez `ADMIN_EMAILS` dans `.env` avec une ou plusieurs adresses séparées
 
 ## État du produit
 
-Le socle API, les modèles de données et l’authentification sont en cours. Le catalogue, la lecture et la progression restent à implémenter. Voir [le cahier des charges](docs/requirements.md) et [la spécification technique](docs/technical-specification.md).
+Le socle Docker, l’authentification, le catalogue, les inscriptions, l’accès aux modules et les routes de progression sont présents. L’interface comprend aussi le lecteur multilingue, la reprise de lecture, la validation des modules, la navigation au module suivant et le tableau de bord. La couverture automatisée, la documentation du cycle de livraison et un déploiement public restent à finaliser. Voir [le cahier des charges](docs/requirements.md) et [la spécification technique](docs/technical-specification.md).

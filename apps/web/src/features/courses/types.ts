@@ -39,6 +39,39 @@ export type ModuleContent = {
     duration_seconds: number;
     video_url: string | null;
     audio_tracks: AudioTrack[];
+    progress_seconds: number;
+    completed: boolean;
+};
+
+export type DashboardModule = {
+    id: string;
+    title: string;
+    position: number;
+    duration_seconds: number;
+    progress_seconds: number;
+    completed: boolean;
+};
+
+export type EnrolledCourse = {
+    id: string;
+    slug: string;
+    title: string;
+    instructor: string;
+    level: string;
+    enrolled_at: string;
+    module_count: number;
+    completed_modules: number;
+    progress_percent: number;
+    modules: DashboardModule[];
+};
+
+export type DashboardResponse = { items: EnrolledCourse[] };
+
+export type ModuleProgressResponse = {
+    module_id: string;
+    progress_seconds: number;
+    completed: boolean;
+    completed_at: string | null;
 };
 
 export type AudioTrack = {
