@@ -34,3 +34,21 @@ def get_current_user(
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=translate(locale, "invalid_session"), headers={"WWW-Authenticate": "Bearer"})
     return user
+
+
+def get_optional_user(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+) -> User | None:
+    if credentials is None:
+        return None
+    try:
+        payload = decode_token(credentials.credentials, "access")
+        user_id = UUID(str(payload["sub"]))
+        session_id = UUID(str(payload["sid"]))
+    except (jwt.InvalidTokenError, ValueError, KeyError):
+        return None
+    if get_active_session(db, session_id, user_id) is None:
+        return None
+    return db.get(User, user_id)

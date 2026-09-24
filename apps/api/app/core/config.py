@@ -7,6 +7,13 @@ class Settings(BaseSettings):
     access_token_minutes: int = 15
     refresh_token_days: int = 7
     refresh_cookie_secure: bool = False
+    minio_endpoint: str = "localhost:9000"
+    minio_public_endpoint: str = "localhost:9000"
+    minio_root_user: str = "synclearn_minio"
+    minio_root_password: str = "synclearn_minio_dev_password"
+    minio_bucket: str = "synclearn"
+    minio_secure: bool = False
+    minio_public_secure: bool = False
 
     model_config = SettingsConfigDict(extra="ignore")
 
