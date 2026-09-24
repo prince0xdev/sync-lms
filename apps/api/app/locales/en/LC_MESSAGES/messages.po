@@ -1,0 +1,83 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en\n"
+
+msgid "email_registered"
+msgstr "This email address is already in use."
+
+msgid "invalid_credentials"
+msgstr "The email address or password is incorrect."
+
+msgid "invalid_session"
+msgstr "The session has expired or is no longer valid."
+
+msgid "unauthorized"
+msgstr "Authentication is required."
+
+msgid "registered"
+msgstr "Account created."
+
+msgid "logged_in"
+msgstr "Login successful."
+
+msgid "logged_out"
+msgstr "Logout successful."
+
+msgid "session_refreshed"
+msgstr "Session renewed."
+
+msgid "validation_error"
+msgstr "The submitted information is invalid."
+
+msgid "invalid_field"
+msgstr "Invalid value."
+
+msgid "database_unavailable"
+msgstr "Database unavailable."
+
+msgid "course_not_found"
+msgstr "Course not found."
+
+msgid "module_not_found"
+msgstr "Module not found."
+
+msgid "user_not_found"
+msgstr "User not found."
+
+msgid "enrollment_required"
+msgstr "Enroll in this course to access the module."
+
+msgid "already_enrolled"
+msgstr "You are already enrolled."
+
+msgid "enrollment_saved"
+msgstr "Enrollment saved."
+
+msgid "administrator_required"
+msgstr "Administrator access required."
+
+msgid "media_type_required"
+msgstr "The file must be a {kind} media file."
+
+msgid "empty_file"
+msgstr "The file is empty."
+
+msgid "file_too_large"
+msgstr "The file exceeds the allowed size."
+
+msgid "media_save_failed"
+msgstr "Could not save the media file."
+
+msgid "slug_in_use"
+msgstr "This course slug is already in use."
+
+msgid "module_position_in_use"
+msgstr "This module position is already used in the course."
+
+msgid "invalid_language_code"
+msgstr "Invalid language code."
+
+msgid "cannot_remove_own_admin"
+msgstr "You cannot remove your own administrator access."

@@ -13,6 +13,7 @@ export type CourseSummary = {
     level: string;
     module_count: number;
     audio_languages: string[];
+    video_languages: string[];
 };
 
 export type CourseDetail = CourseSummary & {
@@ -28,6 +29,7 @@ export type ModuleSummary = {
     duration_seconds: number;
     has_video: boolean;
     audio_languages: string[];
+    video_languages: string[];
 };
 
 export type ModuleContent = {
@@ -38,6 +40,7 @@ export type ModuleContent = {
     position: number;
     duration_seconds: number;
     video_url: string | null;
+    video_tracks: VideoTrack[];
     audio_tracks: AudioTrack[];
     progress_seconds: number;
     completed: boolean;
@@ -72,6 +75,12 @@ export type ModuleProgressResponse = {
     progress_seconds: number;
     completed: boolean;
     completed_at: string | null;
+};
+
+export type VideoTrack = {
+    language: string;
+    mime_type: string;
+    url: string;
 };
 
 export type AudioTrack = {

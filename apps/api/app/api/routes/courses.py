@@ -8,14 +8,15 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.api.dependencies import get_current_user, get_optional_user
 from app.core.database import get_db
-from app.core.i18n import get_locale
+from app.core.i18n import get_locale, translate
 from app.core.storage import get_media_url
 from app.models.course import Course
 from app.models.enrollment import Enrollment
 from app.models.module import Module
 from app.models.module_progress import ModuleProgress
 from app.models.user import User
-from app.schemas.courses import AudioTrackResponse, CourseDetail, CourseListResponse, CourseSummary, DashboardModule, DashboardResponse, EnrolledCourseResponse, EnrollmentResponse, ModuleContentResponse, ModuleProgressResponse, ModuleProgressUpdate, ModuleSummary
+from app.models.video_track import VideoTrack
+from app.schemas.courses import AudioTrackResponse, VideoTrackResponse, CourseDetail, CourseListResponse, CourseSummary, DashboardModule, DashboardResponse, EnrolledCourseResponse, EnrollmentResponse, ModuleContentResponse, ModuleProgressResponse, ModuleProgressUpdate, ModuleSummary
 
 router = APIRouter(tags=["formations"])
 
@@ -32,6 +33,7 @@ def course_summary(course: Course) -> CourseSummary:
         level=course.level,
         module_count=len(course.modules),
         audio_languages=languages,
+        video_languages=sorted({track.language for module in course.modules for track in module.video_tracks} | ({course.language} if any(module.video_key for module in course.modules) else set())),
     )
 
 
@@ -42,12 +44,18 @@ def list_courses(
     level: str | None = Query(default=None, max_length=30),
     db: Session = Depends(get_db),
 ) -> CourseListResponse:
-    statement = select(Course).options(selectinload(Course.modules).selectinload(Module.audio_tracks))
+    statement = select(Course).options(selectinload(Course.modules).selectinload(Module.audio_tracks), selectinload(Course.modules).selectinload(Module.video_tracks))
     if search and search.strip():
         term = f"%{search.strip()}%"
         statement = statement.where(or_(Course.title.ilike(term), Course.instructor.ilike(term)))
     if language:
-        statement = statement.where(func.lower(Course.language) == language.lower())
+        language_match = language.lower()
+        statement = statement.where(
+            or_(
+                func.lower(Course.language) == language_match,
+                Course.modules.any(Module.video_tracks.any(func.lower(VideoTrack.language) == language_match)),
+            )
+        )
     if level:
         statement = statement.where(func.lower(Course.level) == level.lower())
     statement = statement.order_by(Course.title)
@@ -60,11 +68,11 @@ def get_course(slug: str, request: Request, user: User | None = Depends(get_opti
     course = db.scalar(
         select(Course)
         .where(Course.slug == slug)
-        .options(selectinload(Course.modules).selectinload(Module.audio_tracks))
+        .options(selectinload(Course.modules).selectinload(Module.audio_tracks), selectinload(Course.modules).selectinload(Module.video_tracks))
     )
     if course is None:
         locale = get_locale(request)
-        raise HTTPException(status_code=404, detail="Formation introuvable." if locale == "fr" else "Course not found.")
+        raise HTTPException(status_code=404, detail=translate(locale, "course_not_found"))
     summary = course_summary(course)
     modules = [
         ModuleSummary(
@@ -73,8 +81,9 @@ def get_course(slug: str, request: Request, user: User | None = Depends(get_opti
             description=module.description,
             position=module.position,
             duration_seconds=module.duration_seconds,
-            has_video=module.video_key is not None,
+            has_video=module.video_key is not None or bool(module.video_tracks),
             audio_languages=sorted({track.language for track in module.audio_tracks}),
+            video_languages=sorted({track.language for track in module.video_tracks}) or ([course.language] if module.video_key else []),
         )
         for module in course.modules
     ]
@@ -92,16 +101,16 @@ def enroll_course(
     locale = get_locale(request)
     course = db.get(Course, course_id)
     if course is None:
-        raise HTTPException(status_code=404, detail="Formation introuvable." if locale == "fr" else "Course not found.")
+        raise HTTPException(status_code=404, detail=translate(locale, "course_not_found"))
     existing = db.scalar(select(Enrollment).where(Enrollment.user_id == user.id, Enrollment.course_id == course_id))
     if existing is not None:
-        return EnrollmentResponse(message="Vous suivez déjà cette formation." if locale == "fr" else "You are already enrolled.", enrolled=True)
+        return EnrollmentResponse(message=translate(locale, "already_enrolled"), enrolled=True)
     db.add(Enrollment(user_id=user.id, course_id=course_id))
     try:
         db.commit()
     except IntegrityError:
         db.rollback()
-    return EnrollmentResponse(message="Inscription enregistrée." if locale == "fr" else "Enrollment saved.", enrolled=True)
+    return EnrollmentResponse(message=translate(locale, "enrollment_saved"), enrolled=True)
 
 
 @router.get("/me/courses", response_model=DashboardResponse)
@@ -158,17 +167,21 @@ def get_module_content(
     db: Session = Depends(get_db),
 ) -> ModuleContentResponse:
     locale = get_locale(request)
-    module = db.scalar(select(Module).where(Module.id == module_id).options(selectinload(Module.course), selectinload(Module.audio_tracks)))
+    module = db.scalar(select(Module).where(Module.id == module_id).options(selectinload(Module.course), selectinload(Module.audio_tracks), selectinload(Module.video_tracks)))
     if module is None:
-        raise HTTPException(status_code=404, detail="Module introuvable." if locale == "fr" else "Module not found.")
+        raise HTTPException(status_code=404, detail=translate(locale, "module_not_found"))
     enrollment = db.scalar(select(Enrollment.id).where(Enrollment.user_id == user.id, Enrollment.course_id == module.course_id))
     if enrollment is None:
-        raise HTTPException(status_code=403, detail="Inscrivez-vous à cette formation pour accéder au module." if locale == "fr" else "Enroll in this course to access the module.")
+        raise HTTPException(status_code=403, detail=translate(locale, "enrollment_required"))
     video_url = get_media_url(module.video_key) if module.video_key else None
     progress = db.scalar(select(ModuleProgress).where(ModuleProgress.user_id == user.id, ModuleProgress.module_id == module.id))
     tracks = [
         AudioTrackResponse(language=track.language, mime_type=track.mime_type, url=get_media_url(track.object_key))
         for track in sorted(module.audio_tracks, key=lambda item: item.language)
+    ]
+    video_tracks = [
+        VideoTrackResponse(language=track.language, mime_type=track.mime_type, url=get_media_url(track.object_key))
+        for track in sorted(module.video_tracks, key=lambda item: item.language)
     ]
     return ModuleContentResponse(
         id=module.id,
@@ -179,6 +192,7 @@ def get_module_content(
         duration_seconds=module.duration_seconds,
         video_url=video_url,
         audio_tracks=tracks,
+        video_tracks=video_tracks,
         progress_seconds=progress.progress_seconds if progress else 0,
         completed=progress.completed if progress else False,
     )
@@ -195,10 +209,10 @@ def save_module_progress(
     locale = get_locale(request)
     module = db.get(Module, module_id)
     if module is None:
-        raise HTTPException(status_code=404, detail="Module introuvable." if locale == "fr" else "Module not found.")
+        raise HTTPException(status_code=404, detail=translate(locale, "module_not_found"))
     enrolled = db.scalar(select(Enrollment.id).where(Enrollment.user_id == user.id, Enrollment.course_id == module.course_id))
     if enrolled is None:
-        raise HTTPException(status_code=403, detail="Inscrivez-vous à cette formation pour accéder au module." if locale == "fr" else "Enroll in this course to access the module.")
+        raise HTTPException(status_code=403, detail=translate(locale, "enrollment_required"))
     progress = db.scalar(select(ModuleProgress).where(ModuleProgress.user_id == user.id, ModuleProgress.module_id == module.id))
     if progress is None:
         progress = ModuleProgress(user_id=user.id, module_id=module.id, completed=False, progress_seconds=0)

@@ -14,6 +14,7 @@ class CourseSummary(BaseModel):
     level: str
     module_count: int
     audio_languages: list[str]
+    video_languages: list[str] = Field(default_factory=list)
 
 
 class CourseListResponse(BaseModel):
@@ -29,6 +30,7 @@ class ModuleSummary(BaseModel):
     duration_seconds: int
     has_video: bool
     audio_languages: list[str]
+    video_languages: list[str] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -49,6 +51,12 @@ class AudioTrackResponse(BaseModel):
     url: str
 
 
+class VideoTrackResponse(BaseModel):
+    language: str
+    mime_type: str
+    url: str
+
+
 class ModuleContentResponse(BaseModel):
     id: UUID
     course_slug: str
@@ -58,6 +66,7 @@ class ModuleContentResponse(BaseModel):
     duration_seconds: int
     video_url: str | None
     audio_tracks: list[AudioTrackResponse]
+    video_tracks: list[VideoTrackResponse] = Field(default_factory=list)
     progress_seconds: int = 0
     completed: bool = False
 

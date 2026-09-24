@@ -56,6 +56,6 @@ async def readiness_check(request: Request) -> dict[str, str]:
             connection.execute(text("SELECT 1"))
     except SQLAlchemyError as error:
         locale = get_locale(request)
-        message = "Base de données indisponible." if locale == "fr" else "Database unavailable."
+        message = translate(locale, "database_unavailable")
         raise HTTPException(status_code=503, detail=message) from error
     return {"status": "ready", "database": "ok"}

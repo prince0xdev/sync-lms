@@ -1,0 +1,83 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: fr\n"
+
+msgid "email_registered"
+msgstr "Cette adresse e-mail est déjà utilisée."
+
+msgid "invalid_credentials"
+msgstr "Adresse e-mail ou mot de passe incorrect."
+
+msgid "invalid_session"
+msgstr "La session a expiré ou n’est plus valide."
+
+msgid "unauthorized"
+msgstr "Authentification requise."
+
+msgid "registered"
+msgstr "Compte créé."
+
+msgid "logged_in"
+msgstr "Connexion réussie."
+
+msgid "logged_out"
+msgstr "Déconnexion réussie."
+
+msgid "session_refreshed"
+msgstr "Session renouvelée."
+
+msgid "validation_error"
+msgstr "Les informations envoyées sont invalides."
+
+msgid "invalid_field"
+msgstr "Valeur invalide."
+
+msgid "database_unavailable"
+msgstr "Base de données indisponible."
+
+msgid "course_not_found"
+msgstr "Formation introuvable."
+
+msgid "module_not_found"
+msgstr "Module introuvable."
+
+msgid "user_not_found"
+msgstr "Utilisateur introuvable."
+
+msgid "enrollment_required"
+msgstr "Inscrivez-vous à cette formation pour accéder au module."
+
+msgid "already_enrolled"
+msgstr "Vous suivez déjà cette formation."
+
+msgid "enrollment_saved"
+msgstr "Inscription enregistrée."
+
+msgid "administrator_required"
+msgstr "Accès réservé aux administrateurs."
+
+msgid "media_type_required"
+msgstr "Le fichier doit être un média {kind}."
+
+msgid "empty_file"
+msgstr "Le fichier est vide."
+
+msgid "file_too_large"
+msgstr "Le fichier dépasse la taille autorisée."
+
+msgid "media_save_failed"
+msgstr "Impossible d’enregistrer le média."
+
+msgid "slug_in_use"
+msgstr "Ce slug de formation est déjà utilisé."
+
+msgid "module_position_in_use"
+msgstr "Cette position est déjà utilisée dans la formation."
+
+msgid "invalid_language_code"
+msgstr "Code de langue invalide."
+
+msgid "cannot_remove_own_admin"
+msgstr "Vous ne pouvez pas retirer votre propre accès administrateur."
