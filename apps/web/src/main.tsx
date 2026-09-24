@@ -1,10 +1,9 @@
+import "./index.css";
+import App from "./App";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { ZenProvider } from "@umami/react-zen";
-
-import App from "./App";
-import "./index.css";
-
+import { I18nProvider } from './lib/i18n';
 const rootElement = document.getElementById("root");
 
 if (!rootElement) {
@@ -14,7 +13,9 @@ if (!rootElement) {
 createRoot(rootElement).render(
   <StrictMode>
     <ZenProvider colorScheme="system" palette="zinc">
-      <App />
+      <I18nProvider>
+        <App />
+      </I18nProvider>
     </ZenProvider>
   </StrictMode>,
 );

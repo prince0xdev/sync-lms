@@ -1,41 +1,19 @@
-import {
-  Button,
-  Column,
-  Container,
-  Heading,
-  Row,
-  Text,
-} from "@umami/react-zen";
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import Home from './pages/Home';
+import UrlLocaleSync from './components/UrlLocaleSync';
 
-function App() {
+export default function App() {
   return (
-    <Container maxWidth="lg" padding="6">
-      <Column gap="8">
-        <Row
-          justifyContent="space-between"
-          alignItems="center"
-          gap="4"
-        >
-          <Column gap="1">
-            <Text color="muted">SyncLearn</Text>
-            <Heading size="3xl">Apprendre, progresser, simplement.</Heading>
-          </Column>
-
-          <Button variant="primary">
-            Explorer les cours
-          </Button>
-        </Row>
-
-        <Column gap="2">
-          <Heading size="lg">Bienvenue sur SyncLearn</Heading>
-          <Text color="muted">
-            Une plateforme e-learning pensée pour des apprenants
-            francophones et anglophones.
-          </Text>
-        </Column>
-      </Column>
-    </Container>
+    <BrowserRouter>
+      <div style={{ maxWidth: 1024, margin: '0 auto', padding: 4 }}>
+        <Routes>
+          <Route path="/" element={<UrlLocaleSync />} />
+          <Route path="/:lng" element={<>
+            <UrlLocaleSync />
+            <Home />
+          </>} />
+        </Routes>
+      </div>
+    </BrowserRouter>
   );
 }
-
-export default App;
