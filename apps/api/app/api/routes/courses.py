@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -14,7 +15,7 @@ from app.models.enrollment import Enrollment
 from app.models.module import Module
 from app.models.module_progress import ModuleProgress
 from app.models.user import User
-from app.schemas.courses import AudioTrackResponse, CourseDetail, CourseListResponse, CourseSummary, EnrollmentResponse, ModuleContentResponse, ModuleSummary
+from app.schemas.courses import AudioTrackResponse, CourseDetail, CourseListResponse, CourseSummary, DashboardModule, DashboardResponse, EnrolledCourseResponse, EnrollmentResponse, ModuleContentResponse, ModuleProgressResponse, ModuleProgressUpdate, ModuleSummary
 
 router = APIRouter(tags=["formations"])
 
@@ -103,6 +104,52 @@ def enroll_course(
     return EnrollmentResponse(message="Inscription enregistrée." if locale == "fr" else "Enrollment saved.", enrolled=True)
 
 
+@router.get("/me/courses", response_model=DashboardResponse)
+def my_courses(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> DashboardResponse:
+    enrollments = list(db.scalars(
+        select(Enrollment)
+        .where(Enrollment.user_id == user.id)
+        .options(selectinload(Enrollment.course).selectinload(Course.modules))
+        .order_by(Enrollment.created_at.desc())
+    ).unique())
+    module_ids = [module.id for enrollment in enrollments for module in enrollment.course.modules]
+    progress_by_module = {
+        item.module_id: item
+        for item in db.scalars(select(ModuleProgress).where(
+            ModuleProgress.user_id == user.id,
+            ModuleProgress.module_id.in_(module_ids),
+        ))
+    } if module_ids else {}
+    items = []
+    for enrollment in enrollments:
+        modules = [
+            DashboardModule(
+                id=module.id,
+                title=module.title,
+                position=module.position,
+                duration_seconds=module.duration_seconds,
+                progress_seconds=progress_by_module[module.id].progress_seconds if module.id in progress_by_module else 0,
+                completed=progress_by_module[module.id].completed if module.id in progress_by_module else False,
+            )
+            for module in enrollment.course.modules
+        ]
+        count = len(modules)
+        completed = sum(module.completed for module in modules)
+        items.append(EnrolledCourseResponse(
+            id=enrollment.course.id,
+            slug=enrollment.course.slug,
+            title=enrollment.course.title,
+            instructor=enrollment.course.instructor,
+            level=enrollment.course.level,
+            enrolled_at=enrollment.created_at,
+            module_count=count,
+            completed_modules=completed,
+            progress_percent=round(completed * 100 / count) if count else 0,
+            modules=modules,
+        ))
+    return DashboardResponse(items=items)
+
+
 @router.get("/modules/{module_id}", response_model=ModuleContentResponse)
 def get_module_content(
     module_id: UUID,
@@ -118,6 +165,7 @@ def get_module_content(
     if enrollment is None:
         raise HTTPException(status_code=403, detail="Inscrivez-vous à cette formation pour accéder au module." if locale == "fr" else "Enroll in this course to access the module.")
     video_url = get_media_url(module.video_key) if module.video_key else None
+    progress = db.scalar(select(ModuleProgress).where(ModuleProgress.user_id == user.id, ModuleProgress.module_id == module.id))
     tracks = [
         AudioTrackResponse(language=track.language, mime_type=track.mime_type, url=get_media_url(track.object_key))
         for track in sorted(module.audio_tracks, key=lambda item: item.language)
@@ -131,4 +179,39 @@ def get_module_content(
         duration_seconds=module.duration_seconds,
         video_url=video_url,
         audio_tracks=tracks,
+        progress_seconds=progress.progress_seconds if progress else 0,
+        completed=progress.completed if progress else False,
+    )
+
+
+@router.put("/modules/{module_id}/progress", response_model=ModuleProgressResponse)
+def save_module_progress(
+    module_id: UUID,
+    payload: ModuleProgressUpdate,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ModuleProgressResponse:
+    locale = get_locale(request)
+    module = db.get(Module, module_id)
+    if module is None:
+        raise HTTPException(status_code=404, detail="Module introuvable." if locale == "fr" else "Module not found.")
+    enrolled = db.scalar(select(Enrollment.id).where(Enrollment.user_id == user.id, Enrollment.course_id == module.course_id))
+    if enrolled is None:
+        raise HTTPException(status_code=403, detail="Inscrivez-vous à cette formation pour accéder au module." if locale == "fr" else "Enroll in this course to access the module.")
+    progress = db.scalar(select(ModuleProgress).where(ModuleProgress.user_id == user.id, ModuleProgress.module_id == module.id))
+    if progress is None:
+        progress = ModuleProgress(user_id=user.id, module_id=module.id, completed=False, progress_seconds=0)
+        db.add(progress)
+    progress.progress_seconds = max(progress.progress_seconds, min(payload.progress_seconds, module.duration_seconds) if module.duration_seconds > 0 else payload.progress_seconds)
+    if payload.completed and not progress.completed:
+        progress.completed = True
+        progress.completed_at = datetime.now(UTC)
+    db.commit()
+    db.refresh(progress)
+    return ModuleProgressResponse(
+        module_id=progress.module_id,
+        progress_seconds=progress.progress_seconds,
+        completed=progress.completed,
+        completed_at=progress.completed_at,
     )

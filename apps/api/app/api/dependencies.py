@@ -14,6 +14,13 @@ from app.services.auth import get_active_session
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
+def get_admin_user(request: Request, user: User = Depends(get_current_user)) -> User:
+    if not user.is_admin:
+        locale = get_locale(request)
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès réservé aux administrateurs." if locale == "fr" else "Administrator access required.")
+    return user
+
+
 def get_current_user(
     request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),

@@ -7,15 +7,16 @@ import CoursePage from './pages/CoursePage';
 import ModulePage from './pages/ModulePage';
 import UrlLocaleSync from './components/UrlLocaleSync';
 import { getPreferredLocale } from './lib/locale';
+import AdminPage from './pages/AdminPage';
+import { useLocation } from 'react-router-dom';
 
 function LocaleLayout() {
+    const location = useLocation();
+    const isAdmin = /\/admin(?:\/|$)/.test(location.pathname);
     return (
         <>
             <UrlLocaleSync />
-            <div style={{ maxWidth: 1024, margin: '0 auto', padding: 4 }}>
-                <Header />
-                <Outlet />
-            </div>
+            {isAdmin ? <Outlet /> : <div style={{ maxWidth: 1024, margin: '0 auto', padding: 4 }}><Header /><Outlet /></div>}
         </>
     );
 }
@@ -31,6 +32,7 @@ export default function App() {
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="courses/:slug" element={<CoursePage />} />
                 <Route path="courses/:slug/modules/:moduleId" element={<ModulePage />} />
+                <Route path="admin/*" element={<AdminPage />} />
             </Route>
             <Route path="*" element={<Navigate to={`/${getPreferredLocale()}`} replace />} />
         </Routes>

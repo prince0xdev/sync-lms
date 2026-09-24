@@ -8,6 +8,7 @@ export type AuthUser = {
     email: string;
     first_name: string;
     last_name: string;
+    is_admin: boolean;
 };
 
 type AuthResponse = {
@@ -61,4 +62,3 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return <AuthContext.Provider value={{ user, accessToken, isLoading, login, register, logout }}>{children}</AuthContext.Provider>;
 }
-

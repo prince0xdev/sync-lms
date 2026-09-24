@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     minio_bucket: str = "synclearn"
     minio_secure: bool = False
     minio_public_secure: bool = False
+    admin_emails: str = ""
 
     model_config = SettingsConfigDict(extra="ignore")
 

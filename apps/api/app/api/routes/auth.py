@@ -40,11 +40,18 @@ def auth_response(locale: str, message_key: str, access_token: str, user: User) 
     return AuthResponse(message=translate(locale, message_key), access_token=access_token, user=UserResponse.model_validate(user))
 
 
+def sync_admin_role(user: User) -> None:
+    configured_admins = {email.strip().lower() for email in settings.admin_emails.split(",") if email.strip()}
+    if user.email.lower() in configured_admins:
+        user.is_admin = True
+
+
 @router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 def register(payload: RegisterRequest, request: Request, response: Response, db: Session = Depends(get_db)) -> AuthResponse:
     locale = get_locale(request)
     try:
         user = create_user(db, payload.email, payload.password, payload.first_name, payload.last_name)
+        sync_admin_role(user)
         access_token, refresh_token, _ = issue_session(db, user)
         db.commit()
     except IntegrityError:
@@ -60,6 +67,7 @@ def login(payload: LoginRequest, request: Request, response: Response, db: Sessi
     user = authenticate(db, payload.email, payload.password)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=translate(locale, "invalid_credentials"), headers={"WWW-Authenticate": "Bearer"})
+    sync_admin_role(user)
     access_token, refresh_token, _ = issue_session(db, user)
     db.commit()
     set_refresh_cookie(response, refresh_token)
@@ -87,6 +95,7 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
     if user is None:
         clear_refresh_cookie(response)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=translate(locale, "invalid_session"))
+    sync_admin_role(user)
     session.revoked_at = datetime.now(UTC)
     access_token, refresh_token, _ = issue_session(db, user)
     db.commit()

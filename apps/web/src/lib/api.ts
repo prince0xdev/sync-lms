@@ -6,7 +6,7 @@ type RequestOptions = {
     locale: Locale;
     accessToken?: string | null;
     body?: unknown;
-    method?: 'GET' | 'POST';
+    method?: 'GET' | 'POST' | 'PUT';
 };
 
 export class ApiError extends Error {

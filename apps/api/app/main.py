@@ -11,6 +11,7 @@ from app.core.database import engine
 from app.core.i18n import get_locale, translate
 from app.api.routes.auth import router as auth_router
 from app.api.routes.courses import router as courses_router
+from app.api.routes.admin import router as admin_router
 
 app = FastAPI(
     title="SyncLearn API",
@@ -33,6 +34,7 @@ app.add_middleware(
 
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(courses_router, prefix="/api/v1")
+app.include_router(admin_router, prefix="/api/v1")
 
 
 @app.exception_handler(RequestValidationError)
