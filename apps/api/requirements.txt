@@ -8,3 +8,4 @@ python-multipart
 argon2-cffi
 PyJWT
 minio
+email-validator

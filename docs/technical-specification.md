@@ -18,6 +18,12 @@ L’API porte les règles métier et reste la source de vérité pour les inscri
 
 `User` s’inscrit à des `Course`. Une formation contient des `Module`, chaque module peut avoir plusieurs `AudioTrack`, et `ModuleProgress` suit l’avancement d’un utilisateur. Les contraintes uniques empêchent les inscriptions et progressions en double.
 
+## Authentification et langues
+
+L’API prend en charge inscription, connexion, renouvellement, déconnexion et profil. Elle hache les mots de passe, utilise un jeton d’accès court et un cookie de renouvellement HttpOnly avec rotation. Les messages d’authentification suivent l’en-tête `Accept-Language` (français ou anglais).
+
+L’interface choisit la langue du navigateur au premier accès, conserve le choix manuel et l’inscrit dans l’URL.
+
 ## Ordre de réalisation
 
 1. Socle Docker et persistance.

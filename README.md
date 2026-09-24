@@ -22,4 +22,4 @@ Les valeurs de `.env.example` sont des identifiants de développement uniquement
 
 ## État du produit
 
-Le frontend et le socle de l’API sont amorcés. Les fonctionnalités d’authentification, de catalogue, de lecture et de progression restent à implémenter. Voir [le cahier des charges](docs/requirements.md) et [la spécification technique](docs/technical-specification.md).
+Le socle API, les modèles de données et l’authentification sont en cours. Le catalogue, la lecture et la progression restent à implémenter. Voir [le cahier des charges](docs/requirements.md) et [la spécification technique](docs/technical-specification.md).

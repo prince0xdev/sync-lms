@@ -1,8 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Didact+Gothic&display=swap');
 
 @import "tailwindcss";
-@config "../tailwind.config.ts";
 @import "@umami/react-zen/styles.css";
+@config "../tailwind.config.ts";
 
 :root {
   --zen-font-family:
@@ -53,4 +53,39 @@ body,
 body {
   margin: 0;
   background: var(--zen-surface);
+}
+
+
+.auth-form label {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.auth-form input {
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid var(--zen-border);
+  border-radius: 8px;
+  background: var(--zen-surface);
+  color: var(--zen-fg);
+  font: inherit;
+}
+
+.auth-form button,
+main > button {
+  min-height: 42px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--zen-primary);
+  color: var(--zen-primary-fg);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.auth-form button:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
