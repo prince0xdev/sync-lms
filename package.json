@@ -3,7 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "dev": "docker compose up --build",
+    "dev": "docker compose up",
+    "dev:build": "docker compose up --build",
+    "dev:api": "docker compose up db minio minio-init api",
     "down": "docker compose down",
     "logs": "docker compose logs -f"
   }

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useI18n } from '../lib/i18n';
+import { useI18n } from '../lib/useI18n';
+import { getPreferredLocale } from '../lib/locale';
 
 export default function UrlLocaleSync() {
     const { lng } = useParams();
@@ -8,15 +9,11 @@ export default function UrlLocaleSync() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (lng && (lng === 'en' || lng === 'fr')) {
+        if (lng === 'en' || lng === 'fr') {
             setLocale(lng);
             return;
         }
-
-        const stored = localStorage.getItem('synclearn_locale');
-        const nav = typeof navigator !== 'undefined' ? (navigator.language ?? navigator.languages?.[0]) : 'en';
-        const auto = stored === 'en' || stored === 'fr' ? stored : (nav && nav.startsWith('fr') ? 'fr' : 'en');
-        navigate(`/${auto}`, { replace: true });
+        navigate(`/${getPreferredLocale()}`, { replace: true });
     }, [lng, navigate, setLocale]);
 
     return null;

@@ -1,20 +1,25 @@
-import { useNavigate } from 'react-router-dom';
-import { useI18n } from '../lib/i18n';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@umami/react-zen';
+import { useI18n } from '../lib/useI18n';
+import type { Locale } from '../lib/locale';
 
 export default function LangSwitcher() {
     const { locale, setLocale } = useI18n();
     const navigate = useNavigate();
+    const location = useLocation();
 
-    function setAndPush(l: 'en' | 'fr') {
-        setLocale(l);
-        navigate(`/${l}`);
+    function selectLocale(nextLocale: Locale) {
+        setLocale(nextLocale);
+        const segments = location.pathname.split('/');
+        if (segments.length > 1 && (segments[1] === 'fr' || segments[1] === 'en')) segments[1] = nextLocale;
+        else segments.splice(1, 0, nextLocale);
+        navigate(`${segments.join('/')}${location.search}${location.hash}`);
     }
 
     return (
-        <div style={{ display: 'flex', gap: 8 }}>
-            <Button onClick={() => setAndPush('en')} style={{ textDecoration: locale === 'en' ? 'underline' : 'none' }}>en</Button>
-            <Button onClick={() => setAndPush('fr')} style={{ textDecoration: locale === 'fr' ? 'underline' : 'none' }}>fr</Button>
+        <div style={{ display: 'flex', gap: 8 }} aria-label={locale === 'fr' ? 'Langue' : 'Language'}>
+            <Button type="button" onClick={() => selectLocale('fr')} aria-pressed={locale === 'fr'}>FR</Button>
+            <Button type="button" onClick={() => selectLocale('en')} aria-pressed={locale === 'en'}>EN</Button>
         </div>
     );
 }
