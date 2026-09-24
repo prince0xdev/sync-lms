@@ -12,11 +12,11 @@ import { useLocation } from 'react-router-dom';
 
 function LocaleLayout() {
     const location = useLocation();
-    const isAdmin = /\/admin(?:\/|$)/.test(location.pathname);
+    const isWorkspace = /\/(?:admin|dashboard|profile|courses\/[^/]+\/modules\/[^/]+)(?:\/|$)/.test(location.pathname);
     return (
         <>
             <UrlLocaleSync />
-            {isAdmin ? <Outlet /> : <div style={{ maxWidth: 1024, margin: '0 auto', padding: 4 }}><Header /><Outlet /></div>}
+            {isWorkspace ? <Outlet /> : <div style={{ maxWidth: 1024, margin: '0 auto', padding: 4 }}><Header /><Outlet /></div>}
         </>
     );
 }

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.api.dependencies import get_admin_user
 from app.core.config import settings
+from app.core.i18n import get_locale, translate
 from app.core.database import get_db
 from app.core.storage import client as storage_client, get_media_url
 from app.models.audio_track import AudioTrack
@@ -106,19 +107,19 @@ def _course_response(course: Course, enrollment_count: int = 0) -> AdminCourseRe
     )
 
 
-def _store_upload(upload: UploadFile, prefix: str, kind: str, max_size: int) -> tuple[str, str]:
+def _store_upload(upload: UploadFile, prefix: str, kind: str, max_size: int, locale: str) -> tuple[str, str]:
     media_type = upload.content_type or "application/octet-stream"
     if not media_type.startswith(f"{kind}/"):
-        raise HTTPException(status_code=415, detail=f"Le fichier doit être un média {kind}.")
+        raise HTTPException(status_code=415, detail=translate(locale, "media_type_required").format(kind=kind))
     size = upload.size
     if size is None:
         upload.file.seek(0, 2)
         size = upload.file.tell()
         upload.file.seek(0)
     if size <= 0:
-        raise HTTPException(status_code=400, detail="Le fichier est vide.")
+        raise HTTPException(status_code=400, detail=translate(locale, "empty_file"))
     if size > max_size:
-        raise HTTPException(status_code=413, detail="Le fichier dépasse la taille autorisée.")
+        raise HTTPException(status_code=413, detail=translate(locale, "file_too_large"))
     raw_suffix = Path(upload.filename or "").suffix.lower()
     suffix = raw_suffix if len(raw_suffix) <= 10 and fullmatch(r"\.[a-z0-9]+", raw_suffix) else ""
     object_key = f"{prefix}/{uuid4().hex}{suffix}"
@@ -132,7 +133,7 @@ def _store_upload(upload: UploadFile, prefix: str, kind: str, max_size: int) -> 
             content_type=media_type,
         )
     except S3Error as error:
-        raise HTTPException(status_code=502, detail="Impossible d’enregistrer le média.") from error
+        raise HTTPException(status_code=502, detail=translate(locale, "media_save_failed")) from error
     return object_key, media_type
 
 
@@ -159,39 +160,39 @@ def list_admin_courses(db: Session = Depends(get_db)) -> list[AdminCourseRespons
 
 
 @router.post("/courses", response_model=AdminCourseResponse, status_code=status.HTTP_201_CREATED)
-def create_course(payload: AdminCourseInput, db: Session = Depends(get_db)) -> AdminCourseResponse:
+def create_course(payload: AdminCourseInput, locale: str = Depends(get_locale), db: Session = Depends(get_db)) -> AdminCourseResponse:
     course = Course(**payload.model_dump())
     db.add(course)
     try:
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Ce slug de formation est déjà utilisé.") from None
+        raise HTTPException(status_code=409, detail=translate(locale, "slug_in_use")) from None
     db.refresh(course)
     return _course_response(course)
 
 
 @router.put("/courses/{course_id}", response_model=AdminCourseResponse)
-def update_course(course_id: UUID, payload: AdminCourseInput, db: Session = Depends(get_db)) -> AdminCourseResponse:
+def update_course(course_id: UUID, payload: AdminCourseInput, locale: str = Depends(get_locale), db: Session = Depends(get_db)) -> AdminCourseResponse:
     course = db.scalar(select(Course).where(Course.id == course_id).options(selectinload(Course.modules).selectinload(Module.video_tracks)))
     if course is None:
-        raise HTTPException(status_code=404, detail="Formation introuvable.")
+        raise HTTPException(status_code=404, detail=translate(locale, "course_not_found"))
     for key, value in payload.model_dump().items():
         setattr(course, key, value)
     try:
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Ce slug de formation est déjà utilisé.") from None
+        raise HTTPException(status_code=409, detail=translate(locale, "slug_in_use")) from None
     db.refresh(course)
     enrollment_count = db.scalar(select(func.count(Enrollment.id)).where(Enrollment.course_id == course_id)) or 0
     return _course_response(course, enrollment_count)
 
 
 @router.get("/courses/{course_id}/modules", response_model=list[AdminModuleResponse])
-def list_course_modules(course_id: UUID, db: Session = Depends(get_db)) -> list[AdminModuleResponse]:
+def list_course_modules(course_id: UUID, locale: str = Depends(get_locale), db: Session = Depends(get_db)) -> list[AdminModuleResponse]:
     if db.get(Course, course_id) is None:
-        raise HTTPException(status_code=404, detail="Formation introuvable.")
+        raise HTTPException(status_code=404, detail=translate(locale, "course_not_found"))
     modules = db.scalars(
         select(Module)
         .where(Module.course_id == course_id)
@@ -202,36 +203,36 @@ def list_course_modules(course_id: UUID, db: Session = Depends(get_db)) -> list[
 
 
 @router.post("/courses/{course_id}/modules", response_model=AdminModuleResponse, status_code=status.HTTP_201_CREATED)
-def create_module(course_id: UUID, payload: AdminModuleInput, db: Session = Depends(get_db)) -> AdminModuleResponse:
+def create_module(course_id: UUID, payload: AdminModuleInput, locale: str = Depends(get_locale), db: Session = Depends(get_db)) -> AdminModuleResponse:
     if db.get(Course, course_id) is None:
-        raise HTTPException(status_code=404, detail="Formation introuvable.")
+        raise HTTPException(status_code=404, detail=translate(locale, "course_not_found"))
     module = Module(course_id=course_id, **payload.model_dump())
     db.add(module)
     try:
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Cette position est déjà utilisée dans la formation.") from None
+        raise HTTPException(status_code=409, detail=translate(locale, "module_position_in_use")) from None
     db.refresh(module)
     return _module_response(module)
 
 
 @router.put("/courses/{course_id}/modules/{module_id}", response_model=AdminModuleResponse)
-def update_module(course_id: UUID, module_id: UUID, payload: AdminModuleInput, db: Session = Depends(get_db)) -> AdminModuleResponse:
+def update_module(course_id: UUID, module_id: UUID, payload: AdminModuleInput, locale: str = Depends(get_locale), db: Session = Depends(get_db)) -> AdminModuleResponse:
     module = db.scalar(
         select(Module)
         .where(Module.id == module_id, Module.course_id == course_id)
         .options(selectinload(Module.audio_tracks), selectinload(Module.video_tracks))
     )
     if module is None:
-        raise HTTPException(status_code=404, detail="Module introuvable.")
+        raise HTTPException(status_code=404, detail=translate(locale, "module_not_found"))
     for key, value in payload.model_dump().items():
         setattr(module, key, value)
     try:
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Cette position est déjà utilisée dans la formation.") from None
+        raise HTTPException(status_code=409, detail=translate(locale, "module_position_in_use")) from None
     db.refresh(module)
     return _module_response(module)
 
@@ -241,23 +242,24 @@ def upload_module_video(
     module_id: UUID,
     language: str = Form(..., min_length=2, max_length=10),
     file: UploadFile = File(...),
-    db: Session = Depends(get_db),
+    locale: str = Depends(get_locale), db: Session = Depends(get_db),
 ) -> AdminMediaResponse:
     if not fullmatch(r"[a-zA-Z]{2,3}(?:-[a-zA-Z0-9]{2,8})?", language):
-        raise HTTPException(status_code=422, detail="Code de langue invalide.")
+        raise HTTPException(status_code=422, detail=translate(locale, "invalid_language_code"))
     module = db.scalar(
         select(Module)
         .where(Module.id == module_id)
         .options(selectinload(Module.video_tracks))
     )
     if module is None:
-        raise HTTPException(status_code=404, detail="Module introuvable.")
+        raise HTTPException(status_code=404, detail=translate(locale, "module_not_found"))
     normalized_language = language.lower()
     object_key, media_type = _store_upload(
         file,
         f"courses/{module.course_id}/modules/{module.id}/video/{normalized_language}",
         "video",
         MAX_VIDEO_BYTES,
+        locale,
     )
     track = next((item for item in module.video_tracks if item.language == normalized_language), None)
     if track is None:
@@ -279,23 +281,24 @@ def upload_module_audio(
     module_id: UUID,
     language: str = Form(..., min_length=2, max_length=10),
     file: UploadFile = File(...),
-    db: Session = Depends(get_db),
+    locale: str = Depends(get_locale), db: Session = Depends(get_db),
 ) -> AdminMediaResponse:
     if not fullmatch(r"[a-zA-Z]{2,3}(?:-[a-zA-Z0-9]{2,8})?", language):
-        raise HTTPException(status_code=422, detail="Code de langue invalide.")
+        raise HTTPException(status_code=422, detail=translate(locale, "invalid_language_code"))
     module = db.scalar(
         select(Module)
         .where(Module.id == module_id)
         .options(selectinload(Module.audio_tracks))
     )
     if module is None:
-        raise HTTPException(status_code=404, detail="Module introuvable.")
+        raise HTTPException(status_code=404, detail=translate(locale, "module_not_found"))
     normalized_language = language.lower()
     object_key, media_type = _store_upload(
         file,
         f"courses/{module.course_id}/modules/{module.id}/audio/{normalized_language}",
         "audio",
         MAX_AUDIO_BYTES,
+        locale,
     )
     track = next((item for item in module.audio_tracks if item.language == normalized_language), None)
     if track is None:
@@ -359,10 +362,10 @@ def list_users(
 
 
 @router.get("/users/{user_id}/progress", response_model=AdminStudentProgressResponse)
-def student_progress(user_id: UUID, db: Session = Depends(get_db)) -> AdminStudentProgressResponse:
+def student_progress(user_id: UUID, locale: str = Depends(get_locale), db: Session = Depends(get_db)) -> AdminStudentProgressResponse:
     user = db.get(User, user_id)
     if user is None:
-        raise HTTPException(status_code=404, detail="Utilisateur introuvable.")
+        raise HTTPException(status_code=404, detail=translate(locale, "user_not_found"))
     enrollments = db.scalars(
         select(Enrollment)
         .where(Enrollment.user_id == user_id)
@@ -414,13 +417,13 @@ def update_user_role(
     user_id: UUID,
     payload: AdminRoleUpdate,
     admin: User = Depends(get_admin_user),
-    db: Session = Depends(get_db),
+    locale: str = Depends(get_locale), db: Session = Depends(get_db),
 ) -> AdminUserResponse:
     if user_id == admin.id and not payload.is_admin:
-        raise HTTPException(status_code=400, detail="Vous ne pouvez pas retirer votre propre accès administrateur.")
+        raise HTTPException(status_code=400, detail=translate(locale, "cannot_remove_own_admin"))
     user = db.get(User, user_id)
     if user is None:
-        raise HTTPException(status_code=404, detail="Utilisateur introuvable.")
+        raise HTTPException(status_code=404, detail=translate(locale, "user_not_found"))
     user.is_admin = payload.is_admin
     db.commit()
     db.refresh(user)

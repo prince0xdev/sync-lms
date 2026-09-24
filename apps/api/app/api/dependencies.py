@@ -57,7 +57,7 @@ def get_optional_user(
 def get_admin_user(request: Request, user: User = Depends(get_current_user)) -> User:
     if not user.is_admin:
         locale = get_locale(request)
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Accès réservé aux administrateurs." if locale == "fr" else "Administrator access required.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=translate(locale, "administrator_required"))
     return user
 
 

@@ -10,6 +10,7 @@ client = Minio(
     access_key=settings.minio_root_user,
     secret_key=settings.minio_root_password,
     secure=settings.minio_secure,
+    region=settings.minio_region,
 )
 
 
@@ -19,5 +20,6 @@ def get_media_url(object_key: str) -> str:
         access_key=settings.minio_root_user,
         secret_key=settings.minio_root_password,
         secure=settings.minio_public_secure,
+        region=settings.minio_region,
     )
     return signer.presigned_get_object(settings.minio_bucket, object_key, expires=timedelta(minutes=30))

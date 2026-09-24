@@ -12,9 +12,11 @@
   "dependencies": {
     "@tanstack/react-query": "^5.103.2",
     "@umami/react-zen": "^0.255.0",
+    "i18next": "^26.4.2",
     "iconsax-react": "^0.0.8",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "react-i18next": "^17.0.15",
     "react-router-dom": "^7.18.4"
   },
   "devDependencies": {

@@ -33,7 +33,7 @@ export default function CoursePage() {
             <h1>{course.title}</h1>
             <p>{course.description}</p>
             <p>{t('instructor')}: {course.instructor} · {course.module_count} {t('modules_count')}</p>
-            {course.video_languages.length > 0 && <p>{locale === 'fr' ? 'Vidéos disponibles' : 'Video languages'}: {course.video_languages.map((item) => item.toUpperCase()).join(' · ')}</p>}{course.audio_languages.length > 0 && <p>{t('audio_languages')}: {course.audio_languages.map((item) => item.toUpperCase()).join(' · ')}</p>}
+            {course.video_languages.length > 0 && <p>{t('ui_video_languages_videos_disponibles')}: {course.video_languages.map((item) => item.toUpperCase()).join(' · ')}</p>}{course.audio_languages.length > 0 && <p>{t('audio_languages')}: {course.audio_languages.map((item) => item.toUpperCase()).join(' · ')}</p>}
             <section>
                 <h2>{t('course_content')}</h2>
                 <ol className="module-list">
@@ -52,7 +52,7 @@ export default function CoursePage() {
                 <h2>{t('start_learning')}</h2>
                 {course.modules.map((module) => <p key={module.id}>
                     <Link to={`/${locale}/courses/${course.slug}/modules/${module.id}`}>{module.position}. {module.title}</Link>
-                    {module.video_languages.length > 0 && <span className="course-meta"> · {locale === 'fr' ? 'Vidéos' : 'Videos'}: {module.video_languages.map((item) => item.toUpperCase()).join(' / ')}</span>}{module.audio_languages.length > 0 && <span className="course-meta"> · {t('audio_languages')}: {module.audio_languages.map((item) => item.toUpperCase()).join(' / ')}</span>}
+                    {module.video_languages.length > 0 && <span className="course-meta"> · {t('ui_videos_videos')}: {module.video_languages.map((item) => item.toUpperCase()).join(' / ')}</span>}{module.audio_languages.length > 0 && <span className="course-meta"> · {t('audio_languages')}: {module.audio_languages.map((item) => item.toUpperCase()).join(' / ')}</span>}
                 </p>)}
             </section>}
         </main>

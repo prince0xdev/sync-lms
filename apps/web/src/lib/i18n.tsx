@@ -1,32 +1,17 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import en from '../locales/en.json';
-import fr from '../locales/fr.json';
-import { I18nContext } from './i18n-context';
+import { useEffect, type ReactNode } from 'react';
+import { I18nextProvider } from 'react-i18next';
 import { getInitialLocale } from './locale';
-
-const bundles: Record<'en' | 'fr', Record<string, string>> = { en, fr };
-const storageKey = 'synclearn_locale';
+import i18next from './i18n-instance';
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-    const [locale, setLocaleState] = useState(getInitialLocale);
-    const setLocale = useCallback((nextLocale: 'en' | 'fr') => {
-        setLocaleState(nextLocale);
-        try {
-            window.localStorage.setItem(storageKey, nextLocale);
-        } catch {
-            return;
-        }
-    }, []);
-    const t = useCallback((key: string) => bundles[locale][key] ?? key, [locale]);
-
     useEffect(() => {
-        document.documentElement.lang = locale;
-        try {
-            window.localStorage.setItem(storageKey, locale);
-        } catch {
-            return;
-        }
-    }, [locale]);
-
-    return <I18nContext.Provider value={{ locale, t, setLocale }}>{children}</I18nContext.Provider>;
+        const syncDocumentLocale = (locale: string) => {
+            document.documentElement.lang = locale;
+            window.localStorage.setItem('synclearn_locale', locale);
+        };
+        syncDocumentLocale(i18next.resolvedLanguage ?? getInitialLocale());
+        i18next.on('languageChanged', syncDocumentLocale);
+        return () => { i18next.off('languageChanged', syncDocumentLocale); };
+    }, []);
+    return <I18nextProvider i18n={i18next}>{children}</I18nextProvider>;
 }

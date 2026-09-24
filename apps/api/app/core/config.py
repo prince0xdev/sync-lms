@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     refresh_token_days: int = 7
     refresh_cookie_secure: bool = False
     minio_endpoint: str = "localhost:9000"
+    minio_region: str = "us-east-1"
     minio_public_endpoint: str = "localhost:9000"
     minio_root_user: str = "synclearn_minio"
     minio_root_password: str = "synclearn_minio_dev_password"

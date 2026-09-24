@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.api.dependencies import get_current_user, get_optional_user
 from app.core.database import get_db
-from app.core.i18n import get_locale
+from app.core.i18n import get_locale, translate
 from app.core.storage import get_media_url
 from app.models.course import Course
 from app.models.enrollment import Enrollment
@@ -72,7 +72,7 @@ def get_course(slug: str, request: Request, user: User | None = Depends(get_opti
     )
     if course is None:
         locale = get_locale(request)
-        raise HTTPException(status_code=404, detail="Formation introuvable." if locale == "fr" else "Course not found.")
+        raise HTTPException(status_code=404, detail=translate(locale, "course_not_found"))
     summary = course_summary(course)
     modules = [
         ModuleSummary(
@@ -101,16 +101,16 @@ def enroll_course(
     locale = get_locale(request)
     course = db.get(Course, course_id)
     if course is None:
-        raise HTTPException(status_code=404, detail="Formation introuvable." if locale == "fr" else "Course not found.")
+        raise HTTPException(status_code=404, detail=translate(locale, "course_not_found"))
     existing = db.scalar(select(Enrollment).where(Enrollment.user_id == user.id, Enrollment.course_id == course_id))
     if existing is not None:
-        return EnrollmentResponse(message="Vous suivez déjà cette formation." if locale == "fr" else "You are already enrolled.", enrolled=True)
+        return EnrollmentResponse(message=translate(locale, "already_enrolled"), enrolled=True)
     db.add(Enrollment(user_id=user.id, course_id=course_id))
     try:
         db.commit()
     except IntegrityError:
         db.rollback()
-    return EnrollmentResponse(message="Inscription enregistrée." if locale == "fr" else "Enrollment saved.", enrolled=True)
+    return EnrollmentResponse(message=translate(locale, "enrollment_saved"), enrolled=True)
 
 
 @router.get("/me/courses", response_model=DashboardResponse)
@@ -169,10 +169,10 @@ def get_module_content(
     locale = get_locale(request)
     module = db.scalar(select(Module).where(Module.id == module_id).options(selectinload(Module.course), selectinload(Module.audio_tracks), selectinload(Module.video_tracks)))
     if module is None:
-        raise HTTPException(status_code=404, detail="Module introuvable." if locale == "fr" else "Module not found.")
+        raise HTTPException(status_code=404, detail=translate(locale, "module_not_found"))
     enrollment = db.scalar(select(Enrollment.id).where(Enrollment.user_id == user.id, Enrollment.course_id == module.course_id))
     if enrollment is None:
-        raise HTTPException(status_code=403, detail="Inscrivez-vous à cette formation pour accéder au module." if locale == "fr" else "Enroll in this course to access the module.")
+        raise HTTPException(status_code=403, detail=translate(locale, "enrollment_required"))
     video_url = get_media_url(module.video_key) if module.video_key else None
     progress = db.scalar(select(ModuleProgress).where(ModuleProgress.user_id == user.id, ModuleProgress.module_id == module.id))
     tracks = [
@@ -209,10 +209,10 @@ def save_module_progress(
     locale = get_locale(request)
     module = db.get(Module, module_id)
     if module is None:
-        raise HTTPException(status_code=404, detail="Module introuvable." if locale == "fr" else "Module not found.")
+        raise HTTPException(status_code=404, detail=translate(locale, "module_not_found"))
     enrolled = db.scalar(select(Enrollment.id).where(Enrollment.user_id == user.id, Enrollment.course_id == module.course_id))
     if enrolled is None:
-        raise HTTPException(status_code=403, detail="Inscrivez-vous à cette formation pour accéder au module." if locale == "fr" else "Enroll in this course to access the module.")
+        raise HTTPException(status_code=403, detail=translate(locale, "enrollment_required"))
     progress = db.scalar(select(ModuleProgress).where(ModuleProgress.user_id == user.id, ModuleProgress.module_id == module.id))
     if progress is None:
         progress = ModuleProgress(user_id=user.id, module_id=module.id, completed=False, progress_seconds=0)

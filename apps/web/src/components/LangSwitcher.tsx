@@ -4,7 +4,7 @@ import { useI18n } from '../lib/useI18n';
 import type { Locale } from '../lib/locale';
 
 export default function LangSwitcher() {
-    const { locale, setLocale } = useI18n();
+    const { locale, setLocale, t } = useI18n();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -17,7 +17,7 @@ export default function LangSwitcher() {
     }
 
     return (
-        <div style={{ display: 'flex', gap: 8 }} aria-label={locale === 'fr' ? 'Langue' : 'Language'}>
+        <div style={{ display: 'flex', gap: 8 }} aria-label={t('language')}>
             <Button type="button" onClick={() => selectLocale('fr')} aria-pressed={locale === 'fr'}>FR</Button>
             <Button type="button" onClick={() => selectLocale('en')} aria-pressed={locale === 'en'}>EN</Button>
         </div>
