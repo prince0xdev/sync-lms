@@ -16,6 +16,7 @@ class AdminCourseInput(BaseModel):
 class AdminCourseResponse(AdminCourseInput):
     id: UUID
     module_count: int
+    enrollment_count: int = 0
     created_at: datetime
 
 
@@ -27,6 +28,9 @@ class AdminUserResponse(BaseModel):
     is_admin: bool
     created_at: datetime
     enrollment_count: int
+    module_count: int
+    completed_modules: int
+    progress_percent: int
 
 
 class AdminRoleUpdate(BaseModel):
@@ -42,6 +46,8 @@ class AdminModuleInput(BaseModel):
 
 class AdminModuleResponse(AdminModuleInput):
     id: UUID
+    has_video: bool = False
+    audio_languages: list[str] = Field(default_factory=list)
 
 
 
@@ -50,3 +56,35 @@ class AdminOverview(BaseModel):
     user_count: int
     enrollment_count: int
     module_count: int
+
+
+class AdminStudentModuleProgress(BaseModel):
+    id: UUID
+    title: str
+    position: int
+    duration_seconds: int
+    progress_seconds: int
+    completed: bool
+
+
+class AdminStudentCourseProgress(BaseModel):
+    id: UUID
+    slug: str
+    title: str
+    enrolled_at: datetime
+    module_count: int
+    completed_modules: int
+    progress_percent: int
+    modules: list[AdminStudentModuleProgress]
+
+
+class AdminStudentProgressResponse(BaseModel):
+    user: AdminUserResponse
+    courses: list[AdminStudentCourseProgress]
+
+
+class AdminMediaResponse(BaseModel):
+    object_key: str
+    url: str
+    media_type: str
+    language: str | None = None

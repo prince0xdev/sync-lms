@@ -23,9 +23,9 @@ Utilisez `pnpm dev:build` après une modification du `Dockerfile` ou des dépend
 
 Si les conteneurs existent déjà et que le frontend signale une dépendance manquante après la mise à jour du dépôt, synchronisez une fois le volume Node avec `docker compose run --rm --no-deps web pnpm install --frozen-lockfile`, puis relancez `pnpm dev`.
 
-- Frontend : http://localhost:5173
+- Frontend : http://localhost:5175 (port local configuré dans `.env`)
 - API et documentation OpenAPI : http://localhost:8000/docs
-- PostgreSQL : localhost:5433
+- PostgreSQL : localhost:5435 (port local configuré dans `.env`)
 - MinIO : http://localhost:9000 (console : http://localhost:9001)
 
 Pour arrêter les services, utilisez `docker compose down`. Les données persistent dans des volumes Docker. Pour repartir de zéro, `docker compose down -v` supprime aussi ces données.
@@ -34,8 +34,8 @@ Les valeurs de `.env.example` sont des identifiants de développement uniquement
 
 ## Administration
 
-Définissez `ADMIN_EMAILS` dans `.env` avec une ou plusieurs adresses séparées par des virgules. Inscrivez le premier compte avec l’une de ces adresses (ou reconnectez-vous si le compte existe déjà), puis ouvrez `/fr/admin` ou `/en/admin`. Les opérations d’administration sont protégées par l’API, indépendamment de l’interface.
+Définissez `ADMIN_EMAILS` dans `.env` avec une ou plusieurs adresses séparées par des virgules. En développement, l’exemple utilise `admin@example.com` : inscrivez ce compte ou remplacez l’adresse par la vôtre, puis reconnectez-vous si le compte existe déjà. Ouvrez ensuite `/fr/admin` ou `/en/admin`. L’espace Admin Studio permet de créer et modifier des formations et leurs modules, d’envoyer les vidéos et pistes audio dans MinIO, puis de consulter les inscriptions et la progression des apprenants. Les opérations d’administration sont protégées par l’API, indépendamment de l’interface.
 
 ## État du produit
 
-Le socle Docker, l’authentification, le catalogue, les inscriptions, l’accès aux modules et les routes de progression sont présents. L’interface comprend aussi le lecteur multilingue, la reprise de lecture, la validation des modules, la navigation au module suivant et le tableau de bord. La couverture automatisée, la documentation du cycle de livraison et un déploiement public restent à finaliser. Voir [le cahier des charges](docs/requirements.md) et [la spécification technique](docs/technical-specification.md).
+Le socle Docker, l’authentification, le catalogue, les inscriptions, l’accès aux modules, la progression et la gestion admin sont présents. L’interface comprend le lecteur multilingue, le tableau de bord apprenant et Admin Studio pour les cours, les médias et le suivi de progression. La couverture automatisée, la documentation du cycle de livraison et un déploiement public restent à finaliser. Voir [le cahier des charges](docs/requirements.md) et [la spécification technique](docs/technical-specification.md).

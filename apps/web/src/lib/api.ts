@@ -38,3 +38,29 @@ export async function apiRequest<T>(path: string, options: RequestOptions): Prom
 
     return payload as T;
 }
+
+export async function uploadMedia<T>(
+    path: string,
+    file: File,
+    options: { locale: Locale; accessToken?: string | null; language?: string },
+): Promise<T> {
+    const body = new FormData();
+    body.append('file', file);
+    if (options.language) body.append('language', options.language);
+    const headers: Record<string, string> = { 'Accept-Language': options.locale };
+    if (options.accessToken) headers.Authorization = `Bearer ${options.accessToken}`;
+    const response = await fetch(`${apiBaseUrl}${path}`, {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+        body,
+    });
+    const payload: unknown = await response.json().catch(() => null);
+    if (!response.ok) {
+        const message = typeof payload === 'object' && payload !== null && 'detail' in payload && typeof payload.detail === 'string'
+            ? payload.detail
+            : options.locale === 'fr' ? 'Impossible d’envoyer le média.' : 'Could not upload media.';
+        throw new ApiError(message);
+    }
+    return payload as T;
+}
